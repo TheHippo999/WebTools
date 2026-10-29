@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pickleball Round Robin</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: setup panel on the left (stacks on phones), draw on the right as round sections of court cards with a "net" between teams */
+:root{
+  --bg:#eef3f6; --surface:#ffffff; --ink:#13222d; --muted:#586a77; --line:#d3dde4;
+  --accent:#1c5b8c; --accent-ink:#ffffff; --court:#e4eef5; --ball:#c9a400; --warn-bg:#fff6d6; --warn-ink:#6b5300; --err:#b3261e;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1820; --surface:#16222c; --ink:#e3ebf0; --muted:#93a4b0; --line:#2a3a46;
+  --accent:#5fa4dc; --accent-ink:#0b1620; --court:#1b2c39; --ball:#e3c94a; --warn-bg:#3a3214; --warn-ink:#f0dc8a; --err:#ff8a80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1820; --surface:#16222c; --ink:#e3ebf0; --muted:#93a4b0; --line:#2a3a46;
+  --accent:#5fa4dc; --accent-ink:#0b1620; --court:#1b2c39; --ball:#e3c94a; --warn-bg:#3a3214; --warn-ink:#f0dc8a; --err:#ff8a80; color-scheme:dark}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 40px}
+.wrap{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:300px 1fr;gap:28px;align-items:start}
+@media (max-width:760px){.wrap{grid-template-columns:1fr}}
+.wrap > *{min-width:0}
+h1{font-family:var(--display);font-weight:700;font-size:2.1rem;line-height:1;letter-spacing:.01em;margin:0 0 4px;text-wrap:balance}
+.sub{color:var(--muted);margin:0 0 18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:14px}
+@media (min-width:761px){.panel{position:sticky;top:16px}}
+label{font-family:var(--display);font-weight:600;font-size:.95rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:4px}
+textarea,input{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+textarea{min-height:230px;resize:vertical}
+textarea:focus,input:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hint{font-size:.85rem;color:var(--muted);margin:4px 0 0}
+.hint code{background:var(--court);padding:0 4px;border-radius:3px;font-size:.95em}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button{font-family:var(--display);font-weight:600;font-size:1.05rem;letter-spacing:.04em;text-transform:uppercase;border-radius:6px;padding:9px 12px;cursor:pointer;border:1px solid var(--accent);background:transparent;color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);grid-column:1/-1}
+button:hover{filter:brightness(1.08)}
+.summary{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:baseline;margin-bottom:14px}
+.summary b{font-family:var(--display);font-size:1.4rem;font-variant-numeric:tabular-nums}
+.summary span{color:var(--muted)}
+.note{background:var(--warn-bg);color:var(--warn-ink);border-radius:6px;padding:8px 12px;font-size:.9rem;margin-bottom:14px}
+.round{margin-bottom:22px}
+.round h2{font-family:var(--display);font-weight:700;font-size:1.35rem;letter-spacing:.03em;text-transform:uppercase;margin:0 0 8px}
+.courts{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.court{background:var(--court);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.court .cn{font-family:var(--display);font-weight:600;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:6px 10px 0}
+.team{padding:6px 10px;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.net{height:0;border-top:2px dashed var(--accent);margin:2px 10px;position:relative}
+.net::after{content:"vs";position:absolute;right:0;top:-.7em;background:var(--court);padding:0 4px;font-size:.75rem;color:var(--accent);font-weight:600}
+.net + .team{padding-bottom:9px}
+.out{margin-top:8px;font-size:.9rem;color:var(--muted)}
+.out em{font-style:normal;color:var(--ink)}
+.out::before{content:"";display:inline-block;width:.6em;height:.6em;border-radius:50%;background:var(--ball);margin-right:6px;vertical-align:.05em}
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-top:8px}
+summary{cursor:pointer;font-family:var(--display);font-weight:600;font-size:1.05rem;text-transform:uppercase;letter-spacing:.05em}
+.tw{overflow-x:auto;margin-top:8px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:.9rem}
+th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-family:var(--display);font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+td.n,th.n{text-align:right}
+.bad{color:var(--warn-ink);background:var(--warn-bg);border-radius:4px;padding:0 5px}
+.tag{font-size:.75rem;color:var(--muted);margin-left:4px}
+.err{color:var(--err)}
+footer{grid-column:1/-1;color:var(--muted);font-size:.8rem;margin-top:8px}
+.printhead{display:none}
+@media print{
+  :root{--bg:#fff;--surface:#fff;--ink:#000;--muted:#444;--line:#999;--court:#fff;--accent:#000;color-scheme:light}
+  body{padding:0;font-size:11pt}
+  .wrap{display:block;max-width:none}
+  .wrap > div:first-child,details,footer,.note,.summary{display:none}
+  .printhead{display:block;font-family:var(--display);font-size:16pt;font-weight:700;margin:0 0 8pt}
+  .round{break-inside:avoid;margin-bottom:12pt}
+  .court{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <h1>Round Robin Draw</h1>
+    <p class="sub">Doubles, new partners each round.</p>
+    <form class="panel" id="f">
+      <div>
+        <label for="names">Players</label>
+        <textarea id="names" spellcheck="false"></textarea>
+        <p class="hint">One name per line. For a pair who must play together all event, put them on one line as <code>Sam &amp; Lee</code>. Sit-outs are handled automatically, so any "Bye" entries are ignored. Sample names shown.</p>
+      </div>
+      <div class="row">
+        <div><label for="courts">Courts</label><input id="courts" type="number" min="1" max="30" value="3"></div>
+        <div><label for="rounds">Max rounds</label><input id="rounds" type="number" min="1" max="40" value="8"></div>
+      </div>
+      <div class="btns">
+        <button class="primary" type="submit" id="go">Generate draw</button>
+        <button type="button" id="print">Print</button>
+        <button type="button" id="dl">Download</button>
+        <button type="button" id="copy" style="grid-column:1/-1">Copy as text</button>
+      </div>
+      <p class="hint" id="msg"></p>
+    </form>
+  </div>
+  <main id="out" aria-live="polite"></main>
+  <footer id="ver"></footer>
+</div>
+
+<script>
+const VERSION = "1.1";
+console.log("Pickleball Round Robin v" + VERSION);
+document.getElementById("ver").textContent = "Version " + VERSION;
+
+const SAMPLE = ["Alex","Bea","Chris","Dana","Eli","Fran","Gus","Hana","Ivan","Jo","Kim","Lou","Sam & Lee"];
+const $ = id => document.getElementById(id);
+$("names").value = SAMPLE.join("\n");
+let LOCK = [];        // LOCK[i] = index of fixed partner, or -1
+let last = null;      // last generated result, for copy/print/download
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function matrix(n){return Array.from({length:n},()=>new Array(n).fill(0))}
+const isBye = s => /^bye\s*\d*$/i.test(s);
+
+function parseInput(text){
+  const names=[], pairs=[];
+  for(const raw of text.split(/[\n,]/)){
+    const tok=raw.trim(); if(!tok) continue;
+    if(/[&+]/.test(tok)){
+      const parts=tok.split(/\s*[&+]\s*/).map(s=>s.trim()).filter(s=>s && !isBye(s));
+      if(parts.length!==2) return {error:`"${tok}" isn't a pair. Use exactly two names, like Sam & Lee.`};
+      pairs.push([names.length,names.length+1]); names.push(parts[0],parts[1]);
+    } else if(!isBye(tok)) names.push(tok);
+  }
+  const lock=new Array(names.length).fill(-1);
+  for(const [a,b] of pairs){lock[a]=b;lock[b]=a}
+  return {names,lock};
+}
+
+// Cost of one game [a,b,c,d] = team (a,b) vs (c,d). Fixed pairs carry no partner cost.
+function gameCost(g,pc,oc){
+  const [a,b,c,d]=g;
+  const p1=LOCK[a]===b?0:pc[a][b], p2=LOCK[c]===d?0:pc[c][d];
+  return 1000*(p1+p2) + 10*(oc[a][c]+oc[a][d]+oc[b][c]+oc[b][d]);
+}
+
+// Arrange playing players into games, minimising repeat partners, then repeat opponents
+function arrange(play,pc,oc){
+  const fixed=[],singles=[],seen=new Set();
+  for(const i of play){
+    if(LOCK[i]>=0){ if(!seen.has(i)){fixed.push([i,LOCK[i]]);seen.add(i);seen.add(LOCK[i])} }
+    else singles.push(i);
+  }
+  const k=play.length/4; let best=null,bestCost=Infinity;
+  for(let t=0;t<14;t++){
+    const s=shuffle(singles.slice()), teams=fixed.map(p=>p.slice());
+    for(let i=0;i<s.length;i+=2) teams.push([s[i],s[i+1]]);
+    shuffle(teams);
+    const games=[];for(let g=0;g<k;g++)games.push([...teams[2*g],...teams[2*g+1]]);
+    const costs=games.map(g=>gameCost(g,pc,oc));
+    const tryMove=(gi,gj,doIt)=>{
+      const before=gi===gj?costs[gi]:costs[gi]+costs[gj];
+      doIt();
+      const ci=gameCost(games[gi],pc,oc),cj=gi===gj?ci:gameCost(games[gj],pc,oc);
+      if((gi===gj?ci:ci+cj)<before){costs[gi]=ci;costs[gj]=cj;return true}
+      doIt(); return false; // every move is its own inverse
+    };
+    let improved=true,passes=0;
+    while(improved && passes<6){
+      improved=false;passes++;
+      const N=k*4;
+      // swap two individual (non-fixed) players
+      for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){
+        const gi=i>>2,gj=j>>2,pi=i&3,pj=j&3;
+        if(gi===gj && ((pi<2)===(pj<2)))continue;
+        if(LOCK[games[gi][pi]]>=0||LOCK[games[gj][pj]]>=0)continue;
+        if(tryMove(gi,gj,()=>{[games[gi][pi],games[gj][pj]]=[games[gj][pj],games[gi][pi]]}))improved=true;
+      }
+      // swap whole teams between courts
+      for(let a=0;a<2*k;a++)for(let b=a+1;b<2*k;b++){
+        const ga=a>>1,gb=b>>1,oa=(a&1)*2,ob=(b&1)*2;
+        if(ga===gb)continue;
+        if(tryMove(ga,gb,()=>{for(let x=0;x<2;x++){[games[ga][oa+x],games[gb][ob+x]]=[games[gb][ob+x],games[ga][oa+x]]}}))improved=true;
+      }
+    }
+    const total=costs.reduce((s,c)=>s+c,0);
+    if(total<bestCost){bestCost=total;best=games.map(g=>g.slice())}
+    if(bestCost===0)break;
+  }
+  return best;
+}
+
+function buildSchedule(n,courts,rounds){
+  const pc=matrix(n),oc=matrix(n),sits=new Array(n).fill(0),lastSat=new Array(n).fill(-9);
+  const target=n-Math.min(courts*4,Math.floor(n/4)*4);
+  // units: fixed pairs sit out together
+  const units=[];for(let i=0;i<n;i++){if(LOCK[i]<0)units.push([i]);else if(LOCK[i]>i)units.push([i,LOCK[i]])}
+  const sched=[];
+  for(let r=0;r<rounds;r++){
+    const order=units.map(u=>({u,key:sits[u[0]]*10+(lastSat[u[0]]===r-1?5:0)+Math.random()})).sort((x,y)=>x.key-y.key);
+    const sitOut=[],taken=new Set();let need=target;
+    for(const o of order){if(o.u.length<=need){o.u.forEach(i=>sitOut.push(i));need-=o.u.length;taken.add(o)}if(!need)break}
+    for(const o of order){ if((n-sitOut.length)%4===0)break; if(!taken.has(o)){o.u.forEach(i=>sitOut.push(i));taken.add(o)} }
+    const out=new Set(sitOut), play=[...Array(n).keys()].filter(i=>!out.has(i));
+    sitOut.forEach(i=>{sits[i]++;lastSat[i]=r});
+    const games=play.length?arrange(play,pc,oc):[];
+    for(const [a,b,c,d] of games){
+      pc[a][b]++;pc[b][a]++;pc[c][d]++;pc[d][c]++;
+      for(const x of [a,b])for(const y of [c,d]){oc[x][y]++;oc[y][x]++}
+    }
+    sched.push({games,sitOut});
+  }
+  let repeats=0,oppRepeats=0;
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){if(LOCK[i]!==j)repeats+=Math.max(0,pc[i][j]-1);oppRepeats+=Math.max(0,oc[i][j]-2)}
+  return {sched,pc,oc,sits,repeats,score:repeats*1000+oppRepeats};
+}
+
+function generate(){
+  const p=parseInput($("names").value);
+  const courts=Math.max(1,parseInt($("courts").value)||1);
+  const rounds=Math.max(1,Math.min(40,parseInt($("rounds").value)||1));
+  const msg=$("msg"); msg.className="hint"; msg.textContent="";
+  if(p.error){msg.className="hint err";msg.textContent=p.error;return}
+  const names=p.names;
+  const dupes=names.filter((x,i)=>names.findIndex(y=>y.toLowerCase()===x.toLowerCase())!==i);
+  if(names.length<4){msg.className="hint err";msg.textContent="Enter at least 4 players.";return}
+  if(dupes.length){msg.className="hint err";msg.textContent="Duplicate name: "+dupes[0]+". Add an initial to tell them apart.";return}
+  LOCK=p.lock;
+  const n=names.length; let best=null;
+  for(let a=0;a<20;a++){const s=buildSchedule(n,courts,rounds);if(!best||s.score<best.score)best=s;if(best.score===0)break}
+  last={names,courts,rounds,res:best,when:new Date()};
+  render();
+}
+
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const dateStr=d=>d.toLocaleDateString("en-AU",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+
+function render(){
+  const {names,courts,rounds,res}=last, n=names.length;
+  const out=$("out"); out.innerHTML="";
+  const maxPlay=Math.max(...res.sched.map(r=>r.games.length*4));
+  const minSit=Math.min(...res.sched.map(r=>r.sitOut.length));
+
+  out.insertAdjacentHTML("beforeend",`<div class="printhead">Round Robin Draw · ${esc(dateStr(last.when))}</div>`);
+  const sum=document.createElement("div");sum.className="summary";
+  sum.innerHTML=`<div><b>${n}</b> <span>players</span></div><div><b>${maxPlay/4}</b> <span>courts in use</span></div>`+
+    `<div><b>${minSit}</b> <span>sitting out each round</span></div><div><b>${res.repeats}</b> <span>repeat partnerships</span></div>`;
+  out.appendChild(sum);
+
+  const notes=[];
+  if(courts*4>=n && n%4) notes.push(`${n} players isn't a multiple of 4, so ${n%4} sit out each round on rotation.`);
+  if(courts*4<n) notes.push(`More players than court spots (${courts} × 4), so ${n-courts*4} or more sit out each round.`);
+  if(res.sched.some(r=>r.sitOut.length>minSit)) notes.push(`Fixed pairs sit out together, so some rounds have an extra player sitting out.`);
+  if(res.repeats>0) notes.push(`Some players partner twice. With these numbers, ${rounds} rounds is past the point where every pairing can be new.`);
+  if(notes.length){const d=document.createElement("div");d.className="note";d.textContent=notes.join(" ");out.appendChild(d)}
+
+  res.sched.forEach((rd,ri)=>{
+    const sec=document.createElement("section");sec.className="round";
+    let h=`<h2>Round ${ri+1}</h2><div class="courts">`;
+    rd.games.forEach((g,gi)=>{
+      h+=`<div class="court"><div class="cn">Court ${gi+1}</div><div class="team">${esc(names[g[0]]+" & "+names[g[1]])}</div><div class="net"></div><div class="team">${esc(names[g[2]]+" & "+names[g[3]])}</div></div>`;
+    });
+    h+=`</div>`;
+    if(rd.sitOut.length)h+=`<p class="out">Sitting out: <em>${esc(rd.sitOut.map(i=>names[i]).join(", "))}</em></p>`;
+    sec.innerHTML=h; out.appendChild(sec);
+  });
+
+  let rows="";
+  names.forEach((nm,i)=>{
+    const partners=res.pc[i].filter(v=>v>0).length;
+    const rep=LOCK[i]>=0?0:res.pc[i].reduce((s,v)=>s+Math.max(0,v-1),0);
+    rows+=`<tr><td>${esc(nm)}${LOCK[i]>=0?`<span class="tag">fixed with ${esc(names[LOCK[i]])}</span>`:""}</td><td class="n">${rounds-res.sits[i]}</td><td class="n">${res.sits[i]}</td><td class="n">${partners}</td><td class="n">${rep?`<span class="bad">${rep}</span>`:0}</td></tr>`;
+  });
+  out.insertAdjacentHTML("beforeend",`<details><summary>Player check</summary><div class="tw"><table><thead><tr><th>Player</th><th class="n">Games</th><th class="n">Sat out</th><th class="n">Partners</th><th class="n">Repeats</th></tr></thead><tbody>${rows}</tbody></table></div></details>`);
+}
+
+function asText(){
+  const {names,res}=last, L=[`Round Robin Draw · ${dateStr(last.when)}`,""];
+  res.sched.forEach((rd,ri)=>{
+    L.push(`ROUND ${ri+1}`);
+    rd.games.forEach((g,gi)=>L.push(`  Court ${gi+1}: ${names[g[0]]} & ${names[g[1]]}  vs  ${names[g[2]]} & ${names[g[3]]}`));
+    if(rd.sitOut.length)L.push("  Sitting out: "+rd.sitOut.map(i=>names[i]).join(", "));
+    L.push("");
+  });
+  return L.join("\n");
+}
+
+// Plain black-and-white page, one table per round, sized for A4
+function printDoc(){
+  const {names,res}=last;
+  let body="";
+  res.sched.forEach((rd,ri)=>{
+    body+=`<section><h2>Round ${ri+1}</h2><table>`;
+    rd.games.forEach((g,gi)=>{
+      body+=`<tr><th>Court ${gi+1}</th><td>${esc(names[g[0]])} &amp; ${esc(names[g[1]])}</td><td class="vs">vs</td><td>${esc(names[g[2]])} &amp; ${esc(names[g[3]])}</td></tr>`;
+    });
+    body+=`</table>`;
+    if(rd.sitOut.length)body+=`<p>Sitting out: ${esc(rd.sitOut.map(i=>names[i]).join(", "))}</p>`;
+    body+=`</section>`;
+  });
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Round Robin Draw ${esc(dateStr(last.when))}</title>
+<style>
+@page{size:A4;margin:14mm}
+body{font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;font-size:11pt;margin:0 auto;max-width:180mm;padding:10mm 0}
+h1{font-size:18pt;margin:0 0 2pt}.meta{color:#444;margin:0 0 12pt;font-size:10pt}
+section{break-inside:avoid;margin-bottom:10pt}
+h2{font-size:12pt;margin:0 0 3pt;text-transform:uppercase;letter-spacing:.04em;border-bottom:1.5pt solid #000;padding-bottom:2pt}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:3pt 6pt;border-bottom:.5pt solid #bbb}
+th{width:16mm;font-weight:bold;white-space:nowrap}td.vs{width:8mm;color:#555;text-align:center}
+p{margin:3pt 0 0;font-size:10pt}
+@media screen{body{padding:20px}}
+</style></head><body><h1>Round Robin Draw</h1><p class="meta">${esc(dateStr(last.when))} · ${names.length} players · ${res.sched.length} rounds</p>${body}</body></html>`;
+}
+
+$("f").addEventListener("submit",e=>{e.preventDefault();generate()});
+$("copy").addEventListener("click",()=>{
+  if(!last)return; const msg=$("msg");
+  navigator.clipboard?.writeText(asText()).then(()=>{msg.className="hint";msg.textContent="Draw copied as text."})
+    .catch(()=>{msg.className="hint";msg.textContent="Copy was blocked. Select the draw and copy it manually."});
+});
+$("print").addEventListener("click",()=>{ if(last) window.print(); });
+$("dl").addEventListener("click",()=>{
+  if(!last)return;
+  const blob=new Blob([printDoc()],{type:"text/html"});
+  const a=document.createElement("a");
+  const d=last.when, stamp=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  a.href=URL.createObjectURL(blob); a.download=`round-robin-${stamp}.html`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  $("msg").className="hint"; $("msg").textContent="Print version downloaded. Open it and print, or save as PDF.";
+});
+generate();
+</script>
+</body>
+</html>

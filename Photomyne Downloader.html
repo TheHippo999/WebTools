@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact Sheet — Photomyne Album Downloader</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --bg: #17140F;
+    --panel: #211D17;
+    --panel-edge: #34302A;
+    --cream: #EFE7D8;
+    --muted: #948A7B;
+    --safelight: #C1440E;
+    --safelight-bright: #E8672E;
+    --amber: #D9A441;
+    --ok: #6E9B72;
+    --radius: 3px;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0;
+    background: var(--bg);
+    color: var(--cream);
+    font-family: 'Inter', sans-serif;
+    min-height:100vh;
+  }
+  body{
+    display:flex;
+    justify-content:center;
+    padding: 48px 20px 80px;
+  }
+  .frame{
+    width:100%;
+    max-width: 640px;
+  }
+
+  /* sprocket strip */
+  .sprockets{
+    display:flex;
+    justify-content:space-between;
+    padding: 0 6px;
+    margin-bottom: 10px;
+  }
+  .sprockets span{
+    width:10px; height:14px;
+    background: var(--panel-edge);
+    border-radius: 2px;
+  }
+  .sprockets.bottom{ margin-top:10px; margin-bottom:0; }
+
+  header{
+    text-align:center;
+    margin-bottom: 28px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing: 0.16em;
+    text-transform:uppercase;
+    color: var(--safelight-bright);
+    margin-bottom:10px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-optical-sizing:auto;
+    font-size: 34px;
+    line-height:1.15;
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+  header p{
+    color: var(--muted);
+    font-size: 14px;
+    max-width: 440px;
+    margin: 0 auto;
+    line-height:1.5;
+  }
+
+  .panel{
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    border-radius: var(--radius);
+    padding: 22px;
+  }
+
+  label{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .input-row{
+    display:flex;
+    gap: 10px;
+  }
+  input[type=text]{
+    flex:1;
+    background: var(--bg);
+    border: 1px solid var(--panel-edge);
+    color: var(--cream);
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 13px;
+    padding: 12px 13px;
+    border-radius: var(--radius);
+    outline:none;
+    min-width:0;
+  }
+  input[type=text]:focus{
+    border-color: var(--safelight);
+  }
+  input[type=text]::placeholder{ color: #5C564A; }
+
+  button{
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    background: var(--safelight);
+    color: #17140F;
+    border:none;
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    cursor:pointer;
+    transition: background 0.15s ease;
+    white-space:nowrap;
+  }
+  button:hover:not(:disabled){ background: var(--safelight-bright); }
+  button:disabled{ background: var(--panel-edge); color: var(--muted); cursor:not-allowed; }
+  button:focus-visible, input:focus-visible{
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+
+  .error{
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--safelight-bright);
+    font-family:'IBM Plex Mono', monospace;
+    display:none;
+  }
+
+  .status-block{
+    margin-top: 22px;
+    display:none;
+  }
+  .status-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom: 10px;
+  }
+  .status-label{
+    font-size: 14px;
+    color: var(--cream);
+  }
+  .status-count{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--amber);
+  }
+  .bar-track{
+    height: 6px;
+    background: var(--bg);
+    border-radius: 4px;
+    overflow:hidden;
+    border: 1px solid var(--panel-edge);
+  }
+  .bar-fill{
+    height:100%;
+    width:0%;
+    background: linear-gradient(90deg, var(--safelight), var(--amber));
+    transition: width 0.25s ease;
+  }
+  .stage-note{
+    margin-top: 10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  /* contact sheet grid */
+  .sheet{
+    margin-top: 18px;
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    gap: 4px;
+  }
+  .cell{
+    position:relative;
+    aspect-ratio: 1;
+    background: var(--bg);
+    border: 1px solid var(--panel-edge);
+    border-radius: 2px;
+    overflow:hidden;
+  }
+  .cell img{
+    width:100%; height:100%;
+    object-fit: cover;
+    display:block;
+    filter: grayscale(1) brightness(0.55);
+    transition: filter 0.4s ease;
+  }
+  .cell.done img{
+    filter: none;
+  }
+  .cell.done::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    box-shadow: inset 0 0 0 2px var(--ok);
+  }
+  .cell.failed::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    box-shadow: inset 0 0 0 2px var(--safelight-bright);
+  }
+
+  .result{
+    margin-top: 20px;
+    display:none;
+    text-align:center;
+  }
+  .result p{
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0 0 14px;
+  }
+  .result a.download-btn{
+    display:inline-block;
+    text-decoration:none;
+  }
+
+  footer{
+    text-align:center;
+    margin-top: 26px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: #4E483E;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <div class="sprockets">
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+  </div>
+
+  <header>
+    <div class="eyebrow">Frame by frame</div>
+    <h1>Pull an album off the shelf</h1>
+    <p>Paste a Photomyne share link. Every photo gets pulled at full resolution and packed into one zip — no app, no account.</p>
+  </header>
+
+  <div class="panel">
+    <label for="url-input">Gallery link</label>
+    <div class="input-row">
+      <input type="text" id="url-input" placeholder="https://share.photomyne.com/share?u=...&s=..." autocomplete="off" spellcheck="false">
+      <button id="fetch-btn">Fetch album</button>
+    </div>
+    <div class="error" id="error-msg"></div>
+
+    <div class="status-block" id="status-block">
+      <div class="status-row">
+        <span class="status-label" id="status-label">Reading album…</span>
+        <span class="status-count" id="status-count"></span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="bar-fill"></div></div>
+      <div class="stage-note" id="stage-note"></div>
+      <div class="sheet" id="sheet"></div>
+    </div>
+
+    <div class="result" id="result">
+      <p id="result-text"></p>
+      <a class="download-btn" id="download-link"><button id="download-btn">Save zip</button></a>
+    </div>
+  </div>
+
+  <div class="sprockets bottom">
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+  </div>
+
+  <footer>runs entirely in this browser tab — nothing is uploaded anywhere</footer>
+</div>
+
+<script>
+const API_BASE = "https://share.photomyne.com/share/api/photos";
+const PAGE_LIMIT = 40;
+const CONCURRENCY = 6;
+
+const urlInput = document.getElementById('url-input');
+const fetchBtn = document.getElementById('fetch-btn');
+const errorMsg = document.getElementById('error-msg');
+const statusBlock = document.getElementById('status-block');
+const statusLabel = document.getElementById('status-label');
+const statusCount = document.getElementById('status-count');
+const barFill = document.getElementById('bar-fill');
+const stageNote = document.getElementById('stage-note');
+const sheet = document.getElementById('sheet');
+const result = document.getElementById('result');
+const resultText = document.getElementById('result-text');
+const downloadLink = document.getElementById('download-link');
+
+function showError(msg){
+  errorMsg.textContent = msg;
+  errorMsg.style.display = 'block';
+}
+function clearError(){
+  errorMsg.style.display = 'none';
+  errorMsg.textContent = '';
+}
+
+function parseParams(raw){
+  let text = raw.trim();
+  if (!text) return null;
+  if (!/^https?:\/\//i.test(text)) text = 'https://' + text;
+  let parsed;
+  try { parsed = new URL(text); } catch(e) { return null; }
+  const u = parsed.searchParams.get('u');
+  const s = parsed.searchParams.get('s');
+  if (!u || !s) return null;
+  return { u, s };
+}
+
+function filenameFromKey(key, index){
+  let base = key.split('/').pop();
+  if (!/\.(jpg|jpeg|png)$/i.test(base)) base += '.jpg';
+  return String(index).padStart(4, '0') + '_' + base;
+}
+
+async function fetchAllPhotoRecords(u, s){
+  let offset = 0;
+  let all = [];
+  let total = null;
+  while (true){
+    const qs = new URLSearchParams({ u, s, offset: String(offset), limit: String(PAGE_LIMIT) });
+    const resp = await fetch(`${API_BASE}?${qs.toString()}`);
+    if (!resp.ok) throw new Error(`Album request failed (HTTP ${resp.status}). The link may be wrong or expired.`);
+    const data = await resp.json();
+    total = data.total;
+    all = all.concat(data.photos || []);
+    stageNote.textContent = `Reading album… ${all.length}${total ? ' / ' + total : ''} listed`;
+    if (!data.has_more || !data.photos || data.photos.length === 0) break;
+    offset += PAGE_LIMIT;
+  }
+  return all;
+}
+
+function buildSheet(photos){
+  sheet.innerHTML = '';
+  return photos.map((p, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    const img = document.createElement('img');
+    img.src = p.thumb_url || p.thumb2_url || '';
+    img.loading = 'lazy';
+    img.alt = '';
+    cell.appendChild(img);
+    sheet.appendChild(cell);
+    return cell;
+  });
+}
+
+async function downloadOne(photo, index, zip, cellEl){
+  try {
+    const resp = await fetch(photo.url);
+    if (!resp.ok) throw new Error('bad status ' + resp.status);
+    const blob = await resp.blob();
+    const filename = filenameFromKey(photo.key || `photo_${index}.jpg`, index);
+    zip.file(filename, blob);
+    cellEl.classList.add('done');
+    return true;
+  } catch (e){
+    cellEl.classList.add('failed');
+    return false;
+  }
+}
+
+async function runPool(items, worker, onProgress){
+  let cursor = 0;
+  let completed = 0;
+  async function next(){
+    while (cursor < items.length){
+      const i = cursor++;
+      await worker(items[i], i);
+      completed++;
+      onProgress(completed);
+    }
+  }
+  const workers = Array.from({ length: Math.min(CONCURRENCY, items.length) }, next);
+  await Promise.all(workers);
+}
+
+async function run(){
+  clearError();
+  result.style.display = 'none';
+  const params = parseParams(urlInput.value);
+  if (!params){
+    showError('Paste a full gallery link — it needs both a "u" and an "s" parameter.');
+    return;
+  }
+
+  fetchBtn.disabled = true;
+  fetchBtn.textContent = 'Working…';
+  statusBlock.style.display = 'block';
+  statusLabel.textContent = 'Reading album…';
+  statusCount.textContent = '';
+  stageNote.textContent = '';
+  barFill.style.width = '0%';
+  sheet.innerHTML = '';
+
+  let photos;
+  try {
+    photos = await fetchAllPhotoRecords(params.u, params.s);
+  } catch (e){
+    showError(e.message || 'Could not read the album. Double-check the link and try again.');
+    fetchBtn.disabled = false;
+    fetchBtn.textContent = 'Fetch album';
+    statusBlock.style.display = 'none';
+    return;
+  }
+
+  if (photos.length === 0){
+    showError('No photos found in that album.');
+    fetchBtn.disabled = false;
+    fetchBtn.textContent = 'Fetch album';
+    statusBlock.style.display = 'none';
+    return;
+  }
+
+  const total = photos.length;
+  statusLabel.textContent = 'Downloading photos…';
+  stageNote.textContent = 'full resolution, pulled directly from the album';
+  const cells = buildSheet(photos);
+
+  const zip = new JSZip();
+  let failures = 0;
+
+  await runPool(photos, async (photo, i) => {
+    const ok = await downloadOne(photo, i + 1, zip, cells[i]);
+    if (!ok) failures++;
+  }, (completed) => {
+    statusCount.textContent = `${completed} of ${total}`;
+    barFill.style.width = `${Math.round((completed/total)*100)}%`;
+  });
+
+  statusLabel.textContent = 'Packing zip…';
+  stageNote.textContent = 'this can take a moment for large albums';
+  const zipBlob = await zip.generateAsync({ type: 'blob' }, (meta) => {
+    barFill.style.width = `${Math.round(meta.percent)}%`;
+  });
+
+  const objectUrl = URL.createObjectURL(zipBlob);
+  downloadLink.href = objectUrl;
+  downloadLink.download = 'photomyne_album.zip';
+
+  statusLabel.textContent = 'Done';
+  statusCount.textContent = `${total - failures} of ${total}`;
+  barFill.style.width = '100%';
+  stageNote.textContent = failures > 0 ? `${failures} photo(s) failed to download — see the marked frames above.` : 'all photos packed successfully.';
+
+  result.style.display = 'block';
+  resultText.textContent = failures > 0
+    ? `Zip is ready with ${total - failures} of ${total} photos.`
+    : `Zip is ready with all ${total} photos.`;
+
+  fetchBtn.disabled = false;
+  fetchBtn.textContent = 'Fetch album';
+}
+
+fetchBtn.addEventListener('click', run);
+urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') run(); });
+</script>
+</body>
+</html>
