@@ -1,1 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bedside Clock – Verse Builder</title>
+<style>
+:root{--bg:#0f1114;--panel:#171a1f;--panel2:#1e2228;--line:#2a2f37;--text:#e8eaed;--muted:#8a9099;--dim:#5f6670;--accent:#7fb3e8;--warm:#e8c27f;--ok:#6fcf97;--warn:#e8c27f;--bad:#ef7b7b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:24px 20px 60px}
+header{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+h1{font-size:22px;font-weight:500;margin:0}
+h2{font-size:17px;font-weight:500;margin:0 0 4px;display:flex;align-items:center;gap:10px}
+.num{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);align-items:center;justify-content:center;font-size:13px;color:var(--accent)}
+.ver{color:var(--dim);font-size:13px}
+.intro{color:var(--muted);margin:0 0 20px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px}
+.hint{color:var(--muted);font-size:13.5px;margin:2px 0 12px}
+.drop{border:1.5px dashed var(--line);border-radius:10px;padding:22px;text-align:center;color:var(--muted);cursor:pointer;transition:border-color .15s,background .15s}
+.drop.over,.drop:hover{border-color:var(--accent);background:#1a1f26}
+.drop strong{color:var(--text);font-weight:500}
+button,.btn{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:#24496e;border-color:#3b6f9f}
+button.primary:hover{background:#2b5682}
+button:disabled{opacity:.45;cursor:not-allowed}
+input[type=text],input[type=number],input[type=password],input[type=url],textarea{background:#0f1215;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;font-size:14px}
+input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+label{font-size:13px;color:var(--muted)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:4px}
+.summary{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.pill{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px 12px;font-size:13px}
+.pill.ok{color:var(--ok)}.pill.warn{color:var(--warn)}.pill.bad{color:var(--bad)}
+.tablewrap{max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{position:sticky;top:0;background:var(--panel2);text-align:left;font-weight:500;color:var(--muted);padding:7px 10px;border-bottom:1px solid var(--line)}
+td{padding:6px 10px;border-bottom:1px solid #22262c;vertical-align:top}
+tr.item{cursor:pointer}tr.item:hover td{background:#1b2027}tr.sel td{background:#1f2a36}
+.st-ok{color:var(--ok)}.st-warn{color:var(--warn)}.st-bad{color:var(--bad)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 500px;gap:16px}
+@media (max-width:1000px){.layout{grid-template-columns:1fr}}
+.screen{width:480px;height:272px;background:#121417;border-radius:4px;position:relative;overflow:hidden;color:#e8eaed;border:1px solid #2a2f37}
+.screens{display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.caption{font-size:12px;color:var(--dim)}
+.msg{padding:10px 12px;border-radius:8px;font-size:14px;margin-top:10px}
+.msg.ok{background:#16281e;color:var(--ok);border:1px solid #24432f}
+.msg.bad{background:#2c1717;color:var(--bad);border:1px solid #4a2424}
+.msg.info{background:#172330;color:var(--accent);border:1px solid #23384d}
+details{margin-top:10px}summary{cursor:pointer;color:var(--accent);font-size:14px}
+pre.code{background:#0f1215;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:12.5px;white-space:pre-wrap;word-break:break-all;color:#cfd3d8}
+ol.steps{margin:6px 0 0;padding-left:20px;color:var(--muted);font-size:14px}
+ol.steps li{margin:3px 0}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>Bedside Clock – Verse Builder</h1>
+  <span class="ver" id="verLabel"></span>
+</header>
+<p class="intro">Turns your reviewed <code>verses.txt</code> into the encrypted <code>verses.json</code> that the clocks download. Work down the steps in order. Nothing leaves this page: the text and key never get sent anywhere.</p>
 
+<!-- STEP 1 -->
+<section>
+  <h2><span class="num">1</span>Load your verses file</h2>
+  <p class="hint">The plain-text master file. Each block: reference, verse, reflection, then a blank line. Lines starting with # are ignored.</p>
+  <div class="drop" id="dropText"><strong>Drop verses.txt here</strong> or click to choose it</div>
+  <input type="file" id="fileText" accept=".txt,text/plain" class="hidden">
+  <div id="parseMsg"></div>
+</section>
+
+<!-- STEP 2 -->
+<section>
+  <h2><span class="num">2</span>Check the report</h2>
+  <p class="hint">Verses are measured with the same font and width as the clock's main screen. Click any row to preview it. <span class="st-warn">Amber</span> items are allowed but worth a look; <span class="st-bad">red</span> items should be fixed in the text file and reloaded.</p>
+  <div class="row">
+    <div class="field"><label>Clock font (TTF/OTF)</label><button id="btnFont">Choose font file…</button><input type="file" id="fileFont" accept=".ttf,.otf,.woff,.woff2" class="hidden"></div>
+    <div class="field"><label>Font size (px)</label><input type="number" id="setSize" min="8" max="40" step="1" style="width:90px"></div>
+    <div class="field"><label>Text width (px)</label><input type="number" id="setWidth" min="100" max="480" step="1" style="width:90px"></div>
+    <div class="field"><label>Lines shown in full</label><input type="number" id="setLines" min="1" max="8" step="1" style="width:90px"></div>
+    <div class="field"><label>Reflection words</label><div class="row" style="gap:6px"><input type="number" id="setMinW" min="1" step="1" style="width:70px"><span style="color:var(--dim)">to</span><input type="number" id="setMaxW" min="1" step="1" style="width:70px"></div></div>
+  </div>
+  <div id="fontMsg" class="msg info"></div>
+  <div class="summary" id="summary"></div>
+  <div class="layout">
+    <div class="tablewrap"><table><thead><tr><th>#</th><th>Reference</th><th>Lines</th><th>Words</th><th>Status</th></tr></thead><tbody id="tbody"><tr><td colspan="5" style="color:var(--dim)">Load a verses file to see the report.</td></tr></tbody></table></div>
+    <div class="screens">
+      <div class="screen" id="pvMain"></div>
+      <div class="caption">Main screen (verse strip) – actual size</div>
+      <div class="screen" id="pvRefl"></div>
+      <div class="caption">Reflection page – actual size</div>
+    </div>
+  </div>
+</section>
+
+<!-- STEP 3 -->
+<section>
+  <h2><span class="num">3</span>Encrypt and download</h2>
+  <p class="hint">Paste the key from your Bitwarden note. The version number is read from the live file and bumped automatically.</p>
+  <div class="row">
+    <div class="field" style="flex:1;min-width:280px"><label>Encryption key (base64 or hex)</label><input type="password" id="key" autocomplete="off" spellcheck="false"></div>
+    <div class="field"><label>&nbsp;</label><button id="btnShowKey">Show</button></div>
+    <div class="field"><label>New version</label><input type="number" id="version" min="1" step="1" style="width:100px"></div>
+  </div>
+  <div class="row" style="margin-top:10px">
+    <div class="field" style="flex:1;min-width:280px"><label>Live file URL (used to read the current version)</label><input type="text" id="liveUrl" spellcheck="false"></div>
+    <div class="field"><label>&nbsp;</label><button id="btnCheckLive">Check live version</button></div>
+  </div>
+  <div id="liveMsg"></div>
+  <div class="row" style="margin-top:14px"><button class="primary" id="btnBuild" disabled>Build and download verses.json</button></div>
+  <div id="buildMsg"></div>
+</section>
+
+<!-- STEP 4 -->
+<section>
+  <h2><span class="num">4</span>Publish</h2>
+  <ol class="steps">
+    <li>On GitHub, open the WebTools repo and go to the folder holding the live <code>verses.json</code>.</li>
+    <li>Choose <em>Add file → Upload files</em>, drop in the new <code>verses.json</code> (it replaces the old one), and commit.</li>
+    <li>Wait a minute or two for GitHub Pages to update, then press <em>Check live version</em> above to confirm the new number is live.</li>
+    <li>Clocks pick up the new verses on their next update check. Keep your edited <code>verses.txt</code> safe as the master copy.</li>
+  </ol>
+</section>
+
+<!-- TOOLS -->
+<section>
+  <h2>Tools</h2>
+  <details>
+    <summary>Recover verses.txt from an encrypted file</summary>
+    <p class="hint">Lost the master text file? Load any verses.json, using the key from step 3, to get the text back.</p>
+    <div class="row"><button id="btnRecover">Choose verses.json…</button><input type="file" id="fileEnc" accept=".json,application/json" class="hidden"></div>
+    <div id="recoverMsg"></div>
+  </details>
+  <details>
+    <summary>Generate a new encryption key (first-time setup only)</summary>
+    <p class="hint"><span class="st-bad">Only do this once.</span> The key is built into the clock firmware, so a new key means every clock must be re-flashed before it can read files built with it.</p>
+    <button id="btnGenKey">Generate key</button>
+    <div id="genOut" class="hidden">
+      <p class="hint" style="margin-top:12px">Save this in Bitwarden (secure note: "Bedside Clock verse key"):</p>
+      <pre class="code" id="genB64"></pre>
+      <p class="hint">For the firmware (<code>secrets.h</code>):</p>
+      <pre class="code" id="genC"></pre>
+    </div>
+  </details>
+  <details>
+    <summary>File format notes (for the firmware)</summary>
+    <pre class="code">verses.json = {
+  "format":  "bedside-verses",
+  "version": &lt;integer, plain text so the clock can compare before decrypting&gt;,
+  "built":   "&lt;ISO date&gt;",
+  "alg":     "AES-256-GCM",
+  "iv":      "&lt;base64, 12 bytes&gt;",
+  "data":    "&lt;base64, ciphertext followed by the 16-byte GCM tag&gt;"
+}
+Additional authenticated data (AAD): UTF-8 bytes of "bedside-verses:v&lt;version&gt;"
+  (so the plain version number can't be altered without decryption failing)
+Decrypted plaintext (UTF-8 JSON):
+  { "version": n, "built": "...", "verses": [ { "ref": "...", "text": "...", "reflection": "..." }, ... ] }</pre>
+  </details>
+</section>
+</main>
+
+<script>
+const BUILDER_VERSION = "1.0.0";
+console.log("Verse Builder version " + BUILDER_VERSION);
+document.getElementById("verLabel").textContent = "Builder v" + BUILDER_VERSION;
+
+/* ---------- core (no DOM) ---------- */
+const Core = (() => {
+  const AAD_PREFIX = "bedside-verses:v";
+  function parseText(src) {
+    const lines = src.replace(/\r\n?/g, "\n").split("\n");
+    const blocks = []; const errors = [];
+    let cur = null;
+    const flush = () => { if (cur) { blocks.push(cur); cur = null; } };
+    lines.forEach((raw, i) => {
+      const line = raw.trim();
+      if (line.startsWith("#")) return;
+      if (line === "") { flush(); return; }
+      if (!cur) cur = { lineNo: i + 1, lines: [] };
+      cur.lines.push(line);
+    });
+    flush();
+    const verses = [];
+    for (const b of blocks) {
+      if (b.lines.length < 3) {
+        errors.push(`Line ${b.lineNo}: block "${b.lines[0]}" needs 3 lines (reference, verse, reflection) but has ${b.lines.length}.`);
+        continue;
+      }
+      verses.push({ ref: b.lines[0], text: b.lines[1], reflection: b.lines.slice(2).join(" "), lineNo: b.lineNo });
+    }
+    return { verses, errors };
+  }
+  function toText(verses) {
+    const head = "# Bedside Clock verses (Berean Standard Bible, public domain)\n# Each block: line 1 = reference, line 2 = verse text, line 3 = reflection.\n# Separate blocks with a blank line. Lines starting with # are ignored.\n# To remove a verse, delete its whole block. Edit any text freely.\n";
+    return head + "\n" + verses.map(v => `${v.ref}\n${v.text}\n${v.reflection}\n`).join("\n");
+  }
+  function wordCount(s) { return s.split(/\s+/).filter(Boolean).length; }
+  // Greedy wrap, breaking after spaces, hyphens and dashes (close to LVGL behaviour)
+  function wrap(text, maxWidth, measure) {
+    const tokens = text.match(/[^\s\-—–]+[\-—–]?|\s+|[\-—–]/g) || [];
+    const lines = []; let line = "";
+    for (const tok of tokens) {
+      const trial = line + tok;
+      if (line && measure(trial.trimEnd()) > maxWidth && !/^\s+$/.test(tok)) {
+        lines.push(line.trimEnd()); line = tok.trimStart();
+      } else line = trial;
+    }
+    if (line.trim()) lines.push(line.trimEnd());
+    return lines;
+  }
+  function b64(bytes) { let s = ""; bytes.forEach(b => s += String.fromCharCode(b)); return btoa(s); }
+  function unb64(str) { const s = atob(str); return Uint8Array.from(s, c => c.charCodeAt(0)); }
+  function parseKey(str) {
+    const t = (str || "").trim();
+    let bytes = null;
+    if (/^[0-9a-fA-F]{64}$/.test(t)) bytes = Uint8Array.from(t.match(/../g).map(h => parseInt(h, 16)));
+    else { try { bytes = unb64(t); } catch (e) { bytes = null; } }
+    if (!bytes || bytes.length !== 32) throw new Error("The key must be 32 bytes (44 base64 characters or 64 hex digits).");
+    return bytes;
+  }
+  async function importKey(bytes) { return crypto.subtle.importKey("raw", bytes, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]); }
+  async function encrypt(verses, version, keyBytes, builtIso) {
+    const built = builtIso || new Date().toISOString();
+    const plain = JSON.stringify({ version, built, verses: verses.map(v => ({ ref: v.ref, text: v.text, reflection: v.reflection })) });
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await importKey(keyBytes);
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: new TextEncoder().encode(AAD_PREFIX + version), tagLength: 128 }, key, new TextEncoder().encode(plain)));
+    return { format: "bedside-verses", version, built, alg: "AES-256-GCM", iv: b64(iv), data: b64(ct) };
+  }
+  async function decrypt(env, keyBytes) {
+    if (!env || env.format !== "bedside-verses") throw new Error("This doesn't look like a verses.json file.");
+    const key = await importKey(keyBytes);
+    let pt;
+    try {
+      pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(env.iv), additionalData: new TextEncoder().encode(AAD_PREFIX + env.version), tagLength: 128 }, key, unb64(env.data));
+    } catch (e) { throw new Error("Decryption failed: wrong key, or the file has been altered or corrupted."); }
+    return JSON.parse(new TextDecoder().decode(pt));
+  }
+  function genKey() { return crypto.getRandomValues(new Uint8Array(32)); }
+  return { parseText, toText, wordCount, wrap, encrypt, decrypt, parseKey, genKey, b64 };
+})();
+if (typeof module !== "undefined") module.exports = Core;
+
+/* ---------- UI ---------- */
+if (typeof document !== "undefined") (() => {
+  const $ = id => document.getElementById(id);
+  const S = { verses: [], errors: [], rows: [], fontFamily: null, fontName: null, sel: 0, liveVersion: null };
+  const DEFAULTS = { size: 14, width: 416, lines: 4, minW: 60, maxW: 70, liveUrl: "verses.json" };
+  const store = { get(k, d) { try { const v = localStorage.getItem("vb_" + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+                  set(k, v) { try { localStorage.setItem("vb_" + k, JSON.stringify(v)); } catch (e) {} } };
+  const settings = () => ({ size: +$("setSize").value, width: +$("setWidth").value, lines: +$("setLines").value, minW: +$("setMinW").value, maxW: +$("setMaxW").value });
+  const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  function msg(el, cls, html) { $(el).innerHTML = html ? `<div class="msg ${cls}">${html}</div>` : ""; }
+
+  // settings
+  $("setSize").value = store.get("size", DEFAULTS.size);
+  $("setWidth").value = store.get("width", DEFAULTS.width);
+  $("setLines").value = store.get("lines", DEFAULTS.lines);
+  $("setMinW").value = store.get("minW", DEFAULTS.minW);
+  $("setMaxW").value = store.get("maxW", DEFAULTS.maxW);
+  $("liveUrl").value = store.get("liveUrl", DEFAULTS.liveUrl);
+  ["setSize", "setWidth", "setLines", "setMinW", "setMaxW"].forEach(id => $(id).addEventListener("input", () => {
+    const s = settings(); store.set("size", s.size); store.set("width", s.width); store.set("lines", s.lines); store.set("minW", s.minW); store.set("maxW", s.maxW); analyse();
+  }));
+  $("liveUrl").addEventListener("change", () => store.set("liveUrl", $("liveUrl").value.trim()));
+
+  // font
+  const canvas = document.createElement("canvas"); const ctx = canvas.getContext("2d");
+  const family = () => S.fontFamily ? `"${S.fontFamily}"` : `system-ui, sans-serif`;
+  const measure = t => { ctx.font = `${settings().size}px ${family()}`; return ctx.measureText(t).width; };
+  function fontNote() {
+    msg("fontMsg", "info", S.fontFamily ? `Measuring with <strong>${esc(S.fontName)}</strong> — results match the clock.` : `No clock font loaded, so measurements use this browser's font and are approximate. Choose the same TTF the firmware uses for exact line counts. Sizes are provisional until the firmware fixes them.`);
+    $("fontMsg").className = "";
+  }
+  async function loadFont(buf, name) {
+    const fam = "ClockFont" + Date.now();
+    const face = new FontFace(fam, buf); await face.load(); document.fonts.add(face);
+    S.fontFamily = fam; S.fontName = name; fontNote(); analyse();
+  }
+  $("btnFont").onclick = () => $("fileFont").click();
+  $("fileFont").onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    const buf = await f.arrayBuffer();
+    try {
+      await loadFont(buf, f.name);
+      if (buf.byteLength < 3e6) { const b = new Uint8Array(buf); let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); store.set("font", { name: f.name, data: btoa(s) }); }
+    } catch (err) { msg("fontMsg", "bad", "Couldn't load that font: " + esc(err.message)); }
+  };
+  (async () => { const saved = store.get("font", null); if (saved) { try { const s = atob(saved.data); await loadFont(Uint8Array.from(s, c => c.charCodeAt(0)).buffer, saved.name); return; } catch (e) {} } fontNote(); })();
+
+  // load text
+  function wireDrop(zone, input, handler) {
+    zone.onclick = () => input.click();
+    zone.ondragover = e => { e.preventDefault(); zone.classList.add("over"); };
+    zone.ondragleave = () => zone.classList.remove("over");
+    zone.ondrop = e => { e.preventDefault(); zone.classList.remove("over"); if (e.dataTransfer.files[0]) handler(e.dataTransfer.files[0]); };
+    input.onchange = e => { if (e.target.files[0]) handler(e.target.files[0]); input.value = ""; };
+  }
+  wireDrop($("dropText"), $("fileText"), async f => {
+    const r = Core.parseText(await f.text());
+    S.verses = r.verses; S.errors = r.errors; S.sel = 0; S.fileName = f.name;
+    let html = `Loaded <strong>${esc(f.name)}</strong>: ${r.verses.length} verses.`;
+    if (r.errors.length) html += `<br>${r.errors.map(esc).join("<br>")}`;
+    msg("parseMsg", r.errors.length ? "bad" : "ok", html);
+    analyse();
+  });
+
+  // analysis
+  function analyse() {
+    const s = settings(); const seen = {};
+    S.rows = S.verses.map((v, i) => {
+      const lines = Core.wrap(v.text, s.width, measure);
+      const words = Core.wordCount(v.reflection);
+      const issues = []; let level = "ok";
+      const key = v.ref.replace(/\s+/g, " ").toLowerCase();
+      if (seen[key]) { issues.push(`Duplicate of #${seen[key]}`); level = "bad"; } else seen[key] = i + 1;
+      if (words > s.maxW) { issues.push(`Reflection too long (${words} words)`); level = "bad"; }
+      else if (words < s.minW) { issues.push(`Reflection short (${words} words)`); if (level === "ok") level = "warn"; }
+      if (lines.length > s.lines) { issues.push(`${lines.length} lines: shows with "…" on main screen`); if (level === "ok") level = "warn"; }
+      if (/[“”"]/.test(v.text) && ((v.text.match(/“/g) || []).length !== (v.text.match(/”/g) || []).length)) { issues.push("Unbalanced quote marks"); if (level === "ok") level = "warn"; }
+      return { i, v, lines, words, issues, level };
+    });
+    renderTable(); renderPreview(); updateBuild();
+  }
+  function renderTable() {
+    if (!S.rows.length) return;
+    const c = { ok: 0, warn: 0, bad: 0 }; S.rows.forEach(r => c[r.level]++);
+    $("summary").innerHTML = `<span class="pill">${S.rows.length} verses</span><span class="pill ok">${c.ok} OK</span><span class="pill warn">${c.warn} to check</span><span class="pill bad">${c.bad} to fix</span>`;
+    $("tbody").innerHTML = S.rows.map(r => `<tr class="item${r.i === S.sel ? " sel" : ""}" data-i="${r.i}"><td>${r.i + 1}</td><td>${esc(r.v.ref)}</td><td>${r.lines.length}</td><td>${r.words}</td><td class="st-${r.level}">${r.issues.length ? esc(r.issues.join("; ")) : "OK"}</td></tr>`).join("");
+    $("tbody").querySelectorAll("tr.item").forEach(tr => tr.onclick = () => { S.sel = +tr.dataset.i; renderTable(); renderPreview(); });
+  }
+  function renderPreview() {
+    const r = S.rows[S.sel]; if (!r) return;
+    const s = settings(); const fam = family();
+    let shown = r.lines.slice(0, s.lines);
+    if (r.lines.length > s.lines) {
+      let last = shown[s.lines - 1];
+      while (last && measure(last + "…") > s.width) last = last.replace(/\s*\S+$/, "");
+      shown[s.lines - 1] = last + "…";
+    }
+    const lh = Math.round(s.size * 1.35);
+    $("pvMain").innerHTML = `
+      <div style="position:absolute;left:18px;top:14px;font:400 66px/1 ${fam};letter-spacing:-2px">10:42</div>
+      <div style="position:absolute;left:20px;top:86px;font:14px ${fam};color:#8a9099">Friday 13 November</div>
+      <div style="position:absolute;right:16px;top:14px;width:150px;height:92px;border:1px solid #2a2f37;border-radius:6px;font:12px ${fam};color:#5f6670;display:flex;align-items:center;justify-content:center">weather</div>
+      <div style="position:absolute;left:${(480 - s.width) / 2}px;bottom:12px;width:${s.width}px;font:${s.size}px/${lh}px ${fam};color:#d0d4da">${shown.map(l => `<div style="white-space:pre">${esc(l)}</div>`).join("")}<div style="font-size:${Math.max(10, s.size - 3)}px;color:#7fb3e8;margin-top:2px">${esc(r.v.ref)}</div></div>`;
+    const reflLines = Core.wrap(r.v.text, 440, t => { ctx.font = `${s.size + 1}px ${fam}`; return ctx.measureText(t).width; });
+    $("pvRefl").innerHTML = `
+      <div style="position:absolute;left:18px;right:18px;top:10px;display:flex;justify-content:space-between;font:11px ${fam};color:#8a9099"><span>‹ ${esc(r.v.ref)}</span><span style="color:#5f6670">Berean Standard Bible</span></div>
+      <div style="position:absolute;left:20px;top:30px;width:440px;font:${s.size + 1}px/${Math.round((s.size + 1) * 1.35)}px ${fam};color:#e8eaed">${reflLines.map(l => `<div style="white-space:pre">${esc(l)}</div>`).join("")}
+        <div style="border-top:1px solid #252a30;margin-top:8px;padding-top:6px;font-size:11px;color:#7fb3e8">Reflection</div>
+        <div style="font-size:${s.size - 1}px;line-height:1.42;color:#b8bdc4">${esc(r.v.reflection)}</div></div>`;
+  }
+
+  // key + version
+  $("btnShowKey").onclick = () => { const k = $("key"); k.type = k.type === "password" ? "text" : "password"; $("btnShowKey").textContent = k.type === "password" ? "Show" : "Hide"; };
+  $("key").addEventListener("input", updateBuild); $("version").addEventListener("input", updateBuild);
+  function updateBuild() {
+    const bad = S.rows.some(r => r.level === "bad") || S.errors.length;
+    $("btnBuild").disabled = !(S.verses.length && !bad && $("key").value.trim() && +$("version").value > 0);
+    $("btnBuild").title = bad ? "Fix the red items first" : "";
+  }
+  async function checkLive() {
+    const url = $("liveUrl").value.trim(); if (!url) return;
+    store.set("liveUrl", url);
+    try {
+      const res = await fetch(url + (url.includes("?") ? "&" : "?") + "t=" + Date.now(), { cache: "no-store" });
+      if (res.status === 404) { S.liveVersion = 0; msg("liveMsg", "info", "No live file found yet, so this will be version 1."); if (!$("version").value) $("version").value = 1; updateBuild(); return; }
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const env = await res.json(); S.liveVersion = +env.version;
+      msg("liveMsg", "ok", `Live file is version <strong>${S.liveVersion}</strong> (built ${esc((env.built || "").slice(0, 10))}). New version set to ${S.liveVersion + 1}.`);
+      $("version").value = S.liveVersion + 1;
+    } catch (e) {
+      msg("liveMsg", "bad", `Couldn't read the live file (${esc(e.message)}). Enter the new version number by hand: one more than the current live version.`);
+    }
+    updateBuild();
+  }
+  $("btnCheckLive").onclick = checkLive; checkLive();
+
+  // build
+  $("btnBuild").onclick = async () => {
+    try {
+      const keyBytes = Core.parseKey($("key").value);
+      const version = Math.floor(+$("version").value);
+      if (S.liveVersion && version <= S.liveVersion && !confirm(`Version ${version} is not newer than the live version ${S.liveVersion}, so clocks will ignore it. Build anyway?`)) return;
+      const env = await Core.encrypt(S.verses, version, keyBytes);
+      const check = await Core.decrypt(env, keyBytes);
+      const same = check.verses.length === S.verses.length && check.verses.every((v, i) => v.ref === S.verses[i].ref && v.text === S.verses[i].text && v.reflection === S.verses[i].reflection);
+      if (!same) throw new Error("Self-check failed: decrypted content didn't match.");
+      const json = JSON.stringify(env, null, 1);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([json], { type: "application/json" })); a.download = "verses.json"; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      msg("buildMsg", "ok", `Built <strong>verses.json</strong>: version ${version}, ${S.verses.length} verses, ${(json.length / 1024).toFixed(1)} KB. Self-check passed (decrypted and matched). Now do step 4.`);
+    } catch (e) { msg("buildMsg", "bad", esc(e.message)); }
+  };
+
+  // tools
+  $("btnRecover").onclick = () => $("fileEnc").click();
+  $("fileEnc").onchange = async e => {
+    const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+    try {
+      const keyBytes = Core.parseKey($("key").value);
+      const data = await Core.decrypt(JSON.parse(await f.text()), keyBytes);
+      const txt = Core.toText(data.verses);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([txt], { type: "text/plain" })); a.download = `verses-v${data.version}.txt`; a.click();
+      msg("recoverMsg", "ok", `Recovered ${data.verses.length} verses from version ${data.version}. Downloaded as verses-v${data.version}.txt.`);
+    } catch (err) { msg("recoverMsg", "bad", esc(err.message) + (/key/i.test(err.message) ? "" : " (Paste the key in step 3 first.)")); }
+  };
+  $("btnGenKey").onclick = () => {
+    if (!confirm("Generate a brand-new key? Clocks flashed with the old key won't be able to read files built with this one.")) return;
+    const k = Core.genKey();
+    $("genB64").textContent = Core.b64(k);
+    $("genC").textContent = "static const uint8_t VERSE_KEY[32] = {\n  " + Array.from(k, b => "0x" + b.toString(16).padStart(2, "0")).join(", ").replace(/((?:0x..,\s){8})/g, "$1\n  ") + "\n};";
+    $("genOut").classList.remove("hidden");
+  };
+})();
+</script>
+</body>
+</html>
