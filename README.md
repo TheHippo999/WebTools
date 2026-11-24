@@ -18,3 +18,10 @@ Builds the encrypted verse file used by the ESP32 Bedside Clock. Load the plain-
 - AES-256-GCM encryption; the key is entered each time and kept outside the repo
 - Reads the live file's version number and bumps it automatically
 - Includes tools to recover `verses.txt` from an encrypted file and to generate a first-time key
+
+
+## Bedside Clock – Quick Start Guide
+
+**[Open the Quick Start Guide](https://thehippo999.github.io/WebTools/blob/main/bedside-clock/What O’Clock — Quick Start.html)**
+
+Quick Start Guide for What O'Clock
