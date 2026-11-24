@@ -22,6 +22,6 @@ Builds the encrypted verse file used by the ESP32 Bedside Clock. Load the plain-
 
 ## Bedside Clock – Quick Start Guide
 
-**[Open the Quick Start Guide](https://thehippo999.github.io/WebTools/bedside-clock/What O’Clock — Quick Start.html)**
+**[Open the Quick Start Guide](https://thehippo999.github.io/WebTools/bedside-clock/WhatOClockQuickStart.html)**
 
 Quick Start Guide for What O'Clock
